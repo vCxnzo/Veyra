@@ -5,7 +5,10 @@ import 'dotenv/config';
 
 const app = express();
 
-const PORT = 3001;
+// Render provides PORT automatically.
+// Locally, it will use 3001.
+const PORT = process.env.PORT || 3001;
+
 const FRONTEND_URL = 'https://www.veyra.one';
 
 // ─────────────────────────────────────────────
@@ -26,14 +29,21 @@ const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
 
 console.log('Checking OAuth configuration...');
 
+console.log('Roblox Client ID:', ROBLOX_CLIENT_ID ? 'Loaded' : 'Missing');
+console.log('Roblox Client Secret:', ROBLOX_CLIENT_SECRET ? 'Loaded' : 'Missing');
+console.log('Roblox Redirect URI:', ROBLOX_REDIRECT_URI || 'Missing');
+
+console.log('Discord Client ID:', DISCORD_CLIENT_ID ? 'Loaded' : 'Missing');
+console.log('Discord Client Secret:', DISCORD_CLIENT_SECRET ? 'Loaded' : 'Missing');
+console.log('Discord Redirect URI:', DISCORD_REDIRECT_URI || 'Missing');
+
 if (
   !ROBLOX_CLIENT_ID ||
   !ROBLOX_CLIENT_SECRET ||
   !ROBLOX_REDIRECT_URI
 ) {
-  console.error('❌ Missing Roblox OAuth environment variables.');
   console.error(
-    'Required: ROBLOX_CLIENT_ID, ROBLOX_CLIENT_SECRET, ROBLOX_REDIRECT_URI'
+    '❌ Missing Roblox OAuth environment variables.'
   );
 }
 
@@ -42,9 +52,8 @@ if (
   !DISCORD_CLIENT_SECRET ||
   !DISCORD_REDIRECT_URI
 ) {
-  console.error('❌ Missing Discord OAuth environment variables.');
   console.error(
-    'Required: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI'
+    '❌ Missing Discord OAuth environment variables.'
   );
 }
 
@@ -84,10 +93,6 @@ app.get('/api/health', (_req, res) => {
 // ROBLOX OAUTH
 // ═════════════════════════════════════════════
 
-// ─────────────────────────────────────────────
-// Start Roblox Login
-// ─────────────────────────────────────────────
-
 app.get('/auth/roblox', (_req, res) => {
   if (
     !ROBLOX_CLIENT_ID ||
@@ -114,6 +119,7 @@ app.get('/auth/roblox', (_req, res) => {
     `https://apis.roblox.com/oauth/v1/authorize?${params.toString()}`;
 
   console.log('Redirecting to Roblox OAuth...');
+  console.log('Roblox Redirect URI:', ROBLOX_REDIRECT_URI);
 
   res.redirect(authorizationUrl);
 });
@@ -144,7 +150,6 @@ app.get('/auth/roblox/callback', async (req, res) => {
 
     console.log('Received Roblox OAuth callback.');
 
-    // Exchange authorization code for access token
     const tokenResponse = await fetch(
       'https://apis.roblox.com/oauth/v1/token',
       {
@@ -184,7 +189,6 @@ app.get('/auth/roblox/callback', async (req, res) => {
       'Roblox access token received.'
     );
 
-    // Get Roblox user information
     const userResponse = await fetch(
       'https://apis.roblox.com/oauth/v1/userinfo',
       {
@@ -196,14 +200,6 @@ app.get('/auth/roblox/callback', async (req, res) => {
     );
 
     if (!userResponse.ok) {
-      const errorText =
-        await userResponse.text();
-
-      console.error(
-        'Roblox user info error:',
-        errorText
-      );
-
       return res.status(500).send(
         'Failed to retrieve Roblox account information.'
       );
@@ -217,114 +213,31 @@ app.get('/auth/roblox/callback', async (req, res) => {
       userData
     );
 
-    // Temporary success page
     res.send(`
       <!DOCTYPE html>
       <html>
         <head>
           <title>Veyra - Roblox Connected</title>
-
-          <style>
-            * {
-              box-sizing: border-box;
-            }
-
-            body {
-              margin: 0;
-              min-height: 100vh;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: #020617;
-              color: white;
-              font-family: Arial, sans-serif;
-            }
-
-            .card {
-              width: 90%;
-              max-width: 420px;
-              padding: 40px;
-              text-align: center;
-              background: #0f172a;
-              border: 1px solid #1e293b;
-              border-radius: 20px;
-              box-shadow:
-                0 20px 60px
-                rgba(0, 0, 0, 0.4);
-            }
-
-            .icon {
-              width: 64px;
-              height: 64px;
-              margin: 0 auto 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: #ef4444;
-              border-radius: 16px;
-              font-size: 28px;
-              font-weight: bold;
-            }
-
-            h1 {
-              margin: 0 0 10px;
-              font-size: 24px;
-            }
-
-            p {
-              color: #94a3b8;
-              line-height: 1.6;
-            }
-
-            .username {
-              color: white;
-              font-weight: bold;
-            }
-
-            .success {
-              display: inline-block;
-              margin-top: 15px;
-              padding: 10px 16px;
-              background:
-                rgba(239, 68, 68, 0.15);
-              color: #f87171;
-              border-radius: 8px;
-              font-size: 14px;
-            }
-          </style>
         </head>
 
         <body>
-          <div class="card">
+          <h1>Roblox Connected!</h1>
 
-            <div class="icon">
-              R
-            </div>
+          <p>
+            Welcome to ${
+              userData.preferred_username ||
+              userData.name ||
+              'Roblox User'
+            }.
+          </p>
 
-            <h1>
-              Roblox Connected!
-            </h1>
+          <p>
+            Your Roblox account was authenticated successfully.
+          </p>
 
-            <p>
-              Welcome to Veyra,
-              <span class="username">
-                ${
-                  userData.preferred_username ||
-                  userData.name ||
-                  'Roblox User'
-                }
-              </span>.
-            </p>
-
-            <div class="success">
-              ✓ Your Roblox account was authenticated
-            </div>
-
-            <p>
-              You can close this window.
-            </p>
-
-          </div>
+          <p>
+            You can close this window.
+          </p>
         </body>
       </html>
     `);
@@ -345,15 +258,16 @@ app.get('/auth/roblox/callback', async (req, res) => {
 // DISCORD OAUTH
 // ═════════════════════════════════════════════
 
-// ─────────────────────────────────────────────
-// Start Discord Login
-// ─────────────────────────────────────────────
-
 app.get('/auth/discord', (_req, res) => {
+
   if (
     !DISCORD_CLIENT_ID ||
     !DISCORD_REDIRECT_URI
   ) {
+    console.error(
+      '❌ Discord OAuth configuration missing.'
+    );
+
     return res.status(500).send(
       'Discord OAuth is not configured correctly.'
     );
@@ -363,20 +277,54 @@ app.get('/auth/discord', (_req, res) => {
     .randomBytes(32)
     .toString('hex');
 
-  const params = new URLSearchParams({
-    client_id: DISCORD_CLIENT_ID,
-    redirect_uri: DISCORD_REDIRECT_URI,
-    response_type: 'code',
-    scope: 'identify',
-    state,
-  });
+  const params = new URLSearchParams();
+
+  params.set(
+    'client_id',
+    DISCORD_CLIENT_ID
+  );
+
+  params.set(
+    'redirect_uri',
+    DISCORD_REDIRECT_URI
+  );
+
+  params.set(
+    'response_type',
+    'code'
+  );
+
+  params.set(
+    'scope',
+    'identify'
+  );
+
+  params.set(
+    'state',
+    state
+  );
 
   const authorizationUrl =
     `https://discord.com/oauth2/authorize?${params.toString()}`;
 
+  console.log('');
+  console.log('================================');
+  console.log('     DISCORD OAUTH REQUEST');
+  console.log('================================');
   console.log(
-    'Redirecting to Discord OAuth...'
+    'Client ID:',
+    DISCORD_CLIENT_ID
   );
+  console.log(
+    'Redirect URI:',
+    DISCORD_REDIRECT_URI
+  );
+  console.log(
+    'Authorization URL:',
+    authorizationUrl
+  );
+  console.log('================================');
+  console.log('');
 
   res.redirect(authorizationUrl);
 });
@@ -388,7 +336,9 @@ app.get('/auth/discord', (_req, res) => {
 app.get(
   '/auth/discord/callback',
   async (req, res) => {
+
     try {
+
       const { code } = req.query;
 
       if (
@@ -414,36 +364,39 @@ app.get(
         'Received Discord OAuth callback.'
       );
 
-      // Exchange code for access token
-      const tokenResponse = await fetch(
-        'https://discord.com/api/oauth2/token',
-        {
-          method: 'POST',
+      const tokenResponse =
+        await fetch(
+          'https://discord.com/api/oauth2/token',
+          {
+            method: 'POST',
 
-          headers: {
-            'Content-Type':
-              'application/x-www-form-urlencoded',
-          },
+            headers: {
+              'Content-Type':
+                'application/x-www-form-urlencoded',
+            },
 
-          body: new URLSearchParams({
-            client_id:
-              DISCORD_CLIENT_ID,
+            body: new URLSearchParams({
 
-            client_secret:
-              DISCORD_CLIENT_SECRET,
+              client_id:
+                DISCORD_CLIENT_ID,
 
-            grant_type:
-              'authorization_code',
+              client_secret:
+                DISCORD_CLIENT_SECRET,
 
-            code,
+              grant_type:
+                'authorization_code',
 
-            redirect_uri:
-              DISCORD_REDIRECT_URI,
-          }),
-        }
-      );
+              code,
+
+              redirect_uri:
+                DISCORD_REDIRECT_URI,
+
+            }),
+          }
+        );
 
       if (!tokenResponse.ok) {
+
         const errorText =
           await tokenResponse.text();
 
@@ -464,7 +417,6 @@ app.get(
         'Discord access token received.'
       );
 
-      // Get Discord user
       const userResponse =
         await fetch(
           'https://discord.com/api/users/@me',
@@ -477,6 +429,7 @@ app.get(
         );
 
       if (!userResponse.ok) {
+
         const errorText =
           await userResponse.text();
 
@@ -498,7 +451,6 @@ app.get(
         userData
       );
 
-      // Temporary success page
       res.send(`
         <!DOCTYPE html>
         <html>
@@ -507,124 +459,29 @@ app.get(
             <title>
               Veyra - Discord Connected
             </title>
-
-            <style>
-              * {
-                box-sizing: border-box;
-              }
-
-              body {
-                margin: 0;
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: #020617;
-                color: white;
-                font-family: Arial, sans-serif;
-              }
-
-              .card {
-                width: 90%;
-                max-width: 420px;
-                padding: 40px;
-                text-align: center;
-                background: #0f172a;
-                border: 1px solid #1e293b;
-                border-radius: 20px;
-                box-shadow:
-                  0 20px 60px
-                  rgba(0, 0, 0, 0.4);
-              }
-
-              .icon {
-                width: 64px;
-                height: 64px;
-                margin:
-                  0 auto 20px;
-
-                display: flex;
-                align-items: center;
-                justify-content: center;
-
-                background: #5865f2;
-                border-radius: 16px;
-
-                font-size: 28px;
-                font-weight: bold;
-              }
-
-              h1 {
-                margin:
-                  0 0 10px;
-
-                font-size: 24px;
-              }
-
-              p {
-                color: #94a3b8;
-                line-height: 1.6;
-              }
-
-              .username {
-                color: white;
-                font-weight: bold;
-              }
-
-              .success {
-                display: inline-block;
-                margin-top: 15px;
-                padding: 10px 16px;
-                background:
-                  rgba(
-                    88,
-                    101,
-                    242,
-                    0.15
-                  );
-
-                color: #818cf8;
-
-                border-radius: 8px;
-
-                font-size: 14px;
-              }
-            </style>
           </head>
 
           <body>
 
-            <div class="card">
+            <h1>
+              Discord Connected!
+            </h1>
 
-              <div class="icon">
-                D
-              </div>
+            <p>
+              Welcome to ${
+                userData.global_name ||
+                userData.username ||
+                'Discord User'
+              }.
+            </p>
 
-              <h1>
-                Discord Connected!
-              </h1>
+            <p>
+              Your Discord account was authenticated successfully.
+            </p>
 
-              <p>
-                Welcome to Veyra,
-                <span class="username">
-                  ${
-                    userData.global_name ||
-                    userData.username ||
-                    'Discord User'
-                  }
-                </span>.
-              </p>
-
-              <div class="success">
-                ✓ Your Discord account
-                was authenticated
-              </div>
-
-              <p>
-                You can close this window.
-              </p>
-
-            </div>
+            <p>
+              You can close this window.
+            </p>
 
           </body>
 
@@ -632,6 +489,7 @@ app.get(
       `);
 
     } catch (error) {
+
       console.error(
         'Discord OAuth error:',
         error
@@ -649,22 +507,29 @@ app.get(
 // ═════════════════════════════════════════════
 
 app.listen(PORT, () => {
+
   console.log('');
   console.log('================================');
   console.log('        VEYRA API SERVER');
   console.log('================================');
   console.log('');
+
   console.log(
     `✓ Server running on port ${PORT}`
   );
+
   console.log(
-    `✓ API: http://localhost:${PORT}`
+    `✓ Frontend: ${FRONTEND_URL}`
   );
+
   console.log(
-    `✓ Roblox OAuth: http://localhost:${PORT}/auth/roblox`
+    `✓ Roblox OAuth: /auth/roblox`
   );
+
   console.log(
-    `✓ Discord OAuth: http://localhost:${PORT}/auth/discord`
+    `✓ Discord OAuth: /auth/discord`
   );
+
   console.log('');
+
 });
