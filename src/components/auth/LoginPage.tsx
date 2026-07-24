@@ -10,14 +10,17 @@ interface LoginPageProps {
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onNavigateHome }) => {
   const [loadingProvider, setLoadingProvider] = useState<'roblox' | 'discord' | null>(null);
 
-  const handleAuth = (provider: 'roblox' | 'discord') => {
-    setLoadingProvider(provider);
-    // Simulate OAuth handshake
-    setTimeout(() => {
-      setLoadingProvider(null);
-      onLoginSuccess(provider);
-    }, 800);
-  };
+const handleAuth = (provider: 'roblox' | 'discord') => {
+  if (provider === 'roblox') {
+    window.location.href = 'http://localhost:3001/auth/roblox';
+    return;
+  }
+
+  if (provider === 'discord') {
+    window.location.href = 'http://localhost:3001/auth/discord';
+    return;
+  }
+};
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col justify-between p-4 sm:p-6 relative overflow-hidden">
