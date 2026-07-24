@@ -6,7 +6,7 @@ import 'dotenv/config';
 const app = express();
 
 const PORT = 3001;
-const FRONTEND_URL = 'http://localhost:3000';
+const FRONTEND_URL = 'https://www.veyra.one';
 
 // ─────────────────────────────────────────────
 // Environment Variables
