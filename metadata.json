@@ -1,0 +1,6 @@
+{
+  "name": "Veyra",
+  "description": "Roblox community & staff management platform for groups, Discord servers, shifts, quotas, and moderation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
