@@ -1478,21 +1478,24 @@ export default function App() {
 
             <Header
 
-              activeTab={
-                activeTab
-              }
 
+  activeTab={
+    activeTab
+  }
 
-              activeCommunity={
-                activeCommunity
-              }
+  activeCommunity={
+    activeCommunity
+  }
 
+  currentUser={
+    currentUser
+  }
 
-              onToast={
-                addToast
-              }
+  onToast={
+    addToast
+  }
 
-            />
+/>
 
 
             <main className="flex-1 pb-12">
