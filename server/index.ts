@@ -3,6 +3,7 @@ import cors from 'cors';
 import crypto from 'crypto';
 import session from 'express-session';
 import 'dotenv/config';
+import "./db";
 
 const app = express();
 
