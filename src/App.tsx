@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
 import {
   ViewMode,
   DashboardTab,
@@ -29,9 +30,9 @@ import {
 
 // Landing & Auth
 import { LandingPage } from './components/landing/LandingPage';
-import { LoginPage } from './components/auth/LoginPage';
+import LoginPage from './components/auth/LoginPage';
 
-// Dashboard Shell & Views
+// Dashboard
 import { Sidebar } from './components/dashboard/Sidebar';
 import { Header } from './components/dashboard/Header';
 import { OverviewView } from './components/dashboard/OverviewView';
@@ -50,167 +51,686 @@ import { SettingsView } from './components/dashboard/SettingsView';
 import { ToastContainer } from './components/common/Toast';
 import { SupportModal } from './components/landing/SupportModal';
 
+
+// ============================================================
+// BACKEND CONFIGURATION
+// ============================================================
+
+const API_URL =
+    'https://api.veyra.one';
+
+
+
+// ============================================================
+// AUTH USER
+// ============================================================
+
+interface AuthUser {
+
+  provider:
+    'roblox' |
+    'discord';
+
+  id:
+    string;
+
+  username:
+    string;
+
+  displayName:
+    string;
+
+  avatar?:
+    string |
+    null;
+
+}
+
+
+// ============================================================
+// AUTH RESPONSE
+// ============================================================
+
+interface AuthResponse {
+
+  authenticated:
+    boolean;
+
+  user:
+    AuthUser |
+    null;
+
+}
+
+
+// ============================================================
+// A=P
+// ============================================================
+
 export default function App() {
 
-  // ============================================================
-  // TOP LEVEL NAVIGATION & AUTHENTICATION
-  // ============================================================
-
-  const [viewMode, setViewMode] = useState<ViewMode>('landing');
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-
-  // User starts unauthenticated
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
+  
 
   // ============================================================
-  // COMMUNITIES
+  // NAVIGATION
   // ============================================================
 
-  const [communities] = useState<Community[]>(MOCK_COMMUNITIES);
-
-  const [activeCommunity, setActiveCommunity] =
-    useState<Community>(MOCK_COMMUNITIES[0]);
-
-
-  // ============================================================
-  // DATA COLLECTIONS STATE
-  // ============================================================
-
-  const [staffList, setStaffList] =
-    useState<StaffMember[]>(MOCK_STAFF);
-
-  const [shifts, setShifts] =
-    useState<Shift[]>(MOCK_SHIFTS);
-
-  const [quotaConfigs, setQuotaConfigs] =
-    useState<QuotaConfig[]>(MOCK_QUOTAS);
-
-  const [applications, setApplications] =
-    useState<Application[]>(MOCK_APPLICATIONS);
-
-  const [cases, setCases] =
-    useState<ModerationCase[]>(MOCK_MODERATION_CASES);
-
-  const [activityLogs, setActivityLogs] =
-    useState<ActivityLog[]>(MOCK_ACTIVITY_LOGS);
-
-  const [rankSyncRules, setRankSyncRules] =
-    useState<RankSyncRule[]>(MOCK_RANK_SYNC);
-
-  const [loas, setLoas] =
-    useState<LeaveOfAbsence[]>(MOCK_LOAS);
-
-
-  // ============================================================
-  // GLOBAL TOASTS & SUPPORT MODAL
-  // ============================================================
-
-  const [toasts, setToasts] =
-    useState<ToastMessage[]>([]);
-
-  const [supportModalOpen, setSupportModalOpen] =
-    useState(false);
-
-
-  // ============================================================
-  // TOAST FUNCTIONS
-  // ============================================================
-
-  const addToast = (
-    title: string,
-    message?: string,
-    type: 'success' | 'error' | 'info' = 'success'
-  ) => {
-
-    const id =
-      Math.random().toString(36).substring(2, 9);
-
-    setToasts((prev) => [
-      ...prev,
-      {
-        id,
-        title,
-        message,
-        type
-      }
-    ]);
-
-    setTimeout(() => {
-      setToasts((prev) =>
-        prev.filter((t) => t.id !== id)
-      );
-    }, 4000);
-  };
-
-
-  const dismissToast = (id: string) => {
-
-    setToasts((prev) =>
-      prev.filter((t) => t.id !== id)
+  const [
+    viewMode,
+    setViewMode
+  ] =
+    useState<ViewMode>(
+      'landing'
     );
 
-  };
+
+  const [
+    activeTab,
+    setActiveTab
+  ] =
+    useState<DashboardTab>(
+      'overview'
+    );
 
 
   // ============================================================
   // AUTHENTICATION
   // ============================================================
 
-  const handleLoginSuccess = (
-    provider: 'roblox' | 'discord'
+  const [
+    isAuthenticated,
+    setIsAuthenticated
+  ] =
+    useState(false);
+
+
+  const [
+    currentUser,
+    setCurrentUser
+  ] =
+    useState<AuthUser | null>(
+      null
+    );
+
+
+  const [
+    checkingAuth,
+    setCheckingAuth
+  ] =
+    useState(true);
+
+
+  // ============================================================
+  // COMMUNITIES
+  // ============================================================
+
+  const [
+    communities
+  ] =
+    useState<Community[]>(
+      MOCK_COMMUNITIES
+    );
+
+
+  const [
+    activeCommunity,
+    setActiveCommunity
+  ] =
+    useState<Community>(
+      MOCK_COMMUNITIES[0]
+    );
+
+
+  // ============================================================
+  // DATA
+  // ============================================================
+
+  const [
+    staffList,
+    setStaffList
+  ] =
+    useState<StaffMember[]>(
+      MOCK_STAFF
+    );
+
+
+  const [
+    shifts,
+    setShifts
+  ] =
+    useState<Shift[]>(
+      MOCK_SHIFTS
+    );
+
+
+  const [
+    quotaConfigs,
+    setQuotaConfigs
+  ] =
+    useState<QuotaConfig[]>(
+      MOCK_QUOTAS
+    );
+
+
+  const [
+    applications,
+    setApplications
+  ] =
+    useState<Application[]>(
+      MOCK_APPLICATIONS
+    );
+
+
+  const [
+    cases,
+    setCases
+  ] =
+    useState<ModerationCase[]>(
+      MOCK_MODERATION_CASES
+    );
+
+
+  const [
+    activityLogs
+  ] =
+    useState<ActivityLog[]>(
+      MOCK_ACTIVITY_LOGS
+    );
+
+
+  const [
+    rankSyncRules,
+    setRankSyncRules
+  ] =
+    useState<RankSyncRule[]>(
+      MOCK_RANK_SYNC
+    );
+
+
+  const [
+    loas,
+    setLoas
+  ] =
+    useState<LeaveOfAbsence[]>(
+      MOCK_LOAS
+    );
+
+
+  // ============================================================
+  // UI
+  // ============================================================
+
+  const [
+    toasts,
+    setToasts
+  ] =
+    useState<ToastMessage[]>(
+      []
+    );
+
+
+  const [
+    supportModalOpen,
+    setSupportModalOpen
+  ] =
+    useState(false);
+
+
+  // ============================================================
+  // TOAST
+  // ============================================================
+
+  const addToast = (
+
+    title:
+      string,
+
+    message?:
+      string,
+
+    type:
+      'success' |
+      'error' |
+      'info' =
+        'success'
+
   ) => {
 
-    // Mark the user as authenticated
-    setIsAuthenticated(true);
+    const id =
+      Math.random()
+        .toString(36)
+        .substring(
+          2,
+          9
+        );
 
-    // Open dashboard
-    setViewMode('dashboard');
 
-    // Show success message
-    addToast(
-      'Authenticated Successfully',
-      `Logged in via ${
-        provider === 'roblox'
-          ? 'Roblox OAuth'
-          : 'Discord OAuth'
-      }`
+    setToasts(
+      (prev) => [
+
+        ...prev,
+
+        {
+          id,
+          title,
+          message,
+          type
+        }
+
+      ]
+    );
+
+
+    setTimeout(
+      () => {
+
+        setToasts(
+          (prev) =>
+            prev.filter(
+              (toast) =>
+                toast.id !== id
+            )
+        );
+
+      },
+      4000
     );
 
   };
 
 
-  const handleLogout = () => {
+  const dismissToast = (
+    id:
+      string
+  ) => {
 
-    // Remove authentication
-    setIsAuthenticated(false);
-
-    // Return to landing page
-    setViewMode('landing');
-
-    // Reset dashboard tab
-    setActiveTab('overview');
-
-    // Notify user
-    addToast(
-      'Logged Out',
-      'You have been safely logged out of Veyra.'
+    setToasts(
+      (prev) =>
+        prev.filter(
+          (toast) =>
+            toast.id !== id
+        )
     );
 
   };
 
 
   // ============================================================
-  // STAFF ACTIONS
+  // AUTH CHECK
+  // ============================================================
+
+  useEffect(() => {
+
+    const checkAuthentication =
+      async () => {
+
+        try {
+
+          console.log(
+            'Checking Veyra authentication...'
+          );
+
+
+          const response =
+            await fetch(
+              `${API_URL}/api/auth/me`,
+              {
+                method:
+                  'GET',
+
+                credentials:
+                  'include',
+
+                headers: {
+                  'Accept':
+                    'application/json'
+                }
+              }
+            );
+
+
+          if (
+            !response.ok
+          ) {
+
+            throw new Error(
+              `Auth request failed with status ${response.status}`
+            );
+
+          }
+
+
+          const data:
+            AuthResponse =
+            await response.json();
+
+
+          console.log(
+            'Authentication response:',
+            data
+          );
+
+
+          // ====================================================
+          // USER IS LOGGED IN
+          // ====================================================
+
+          if (
+            data.authenticated &&
+            data.user
+          ) {
+
+            console.log(
+              'User authenticated:',
+              data.user
+            );
+
+
+            setCurrentUser(
+              data.user
+            );
+
+
+            setIsAuthenticated(
+              true
+            );
+
+
+            setViewMode(
+              'dashboard'
+            );
+
+
+            setActiveTab(
+              'overview'
+            );
+
+
+            // Remove OAuth query
+            // from browser URL
+
+            if (
+              window.location.search
+            ) {
+
+              window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname
+              );
+
+            }
+
+          }
+
+
+          // ====================================================
+          // USER IS NOT LOGGED IN
+          // ====================================================
+
+          else {
+
+            console.log(
+              'No active Veyra session.'
+            );
+
+
+            setCurrentUser(
+              null
+            );
+
+
+            setIsAuthenticated(
+              false
+            );
+
+
+            setViewMode(
+              'landing'
+            );
+
+          }
+
+        }
+
+
+        catch (
+          error
+        ) {
+
+          console.error(
+            'Authentication check failed:',
+            error
+          );
+
+
+          setCurrentUser(
+            null
+          );
+
+
+          setIsAuthenticated(
+            false
+          );
+
+
+          setViewMode(
+            'landing'
+          );
+
+        }
+
+
+        finally {
+
+          setCheckingAuth(
+            false
+          );
+
+        }
+
+      };
+
+
+    checkAuthentication();
+
+  }, []);
+
+
+  // ============================================================
+  // LOGIN SUCCESS
+  // ============================================================
+
+  const handleLoginSuccess =
+    async () => {
+
+      console.log(
+        'Login success detected. Checking session...'
+      );
+
+
+      try {
+
+        const response =
+          await fetch(
+            `${API_URL}/api/auth/me`,
+            {
+              method:
+                'GET',
+
+              credentials:
+                'include',
+
+              headers: {
+                'Accept':
+                  'application/json'
+              }
+            }
+          );
+
+
+        const data:
+          AuthResponse =
+          await response.json();
+
+
+        console.log(
+          'Post-login session:',
+          data
+        );
+
+
+        if (
+          data.authenticated &&
+          data.user
+        ) {
+
+          setCurrentUser(
+            data.user
+          );
+
+
+          setIsAuthenticated(
+            true
+          );
+
+
+          setViewMode(
+            'dashboard'
+          );
+
+
+          setActiveTab(
+            'overview'
+          );
+
+
+          addToast(
+            'Welcome to Veyra',
+            `Welcome back, ${
+              data.user.displayName ||
+              data.user.username
+            }!`
+          );
+
+
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+
+        }
+
+        else {
+
+          addToast(
+            'Authentication Error',
+            'Your session could not be verified.',
+            'error'
+          );
+
+        }
+
+      }
+
+      catch (
+        error
+      ) {
+
+        console.error(
+          'Login verification failed:',
+          error
+        );
+
+
+        addToast(
+          'Authentication Error',
+          'Unable to connect to the Veyra authentication server.',
+          'error'
+        );
+
+      }
+
+    };
+
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+
+  const handleLogout =
+    async () => {
+
+      try {
+
+        await fetch(
+          `${API_URL}/api/auth/logout`,
+          {
+            method:
+              'POST',
+
+            credentials:
+              'include'
+          }
+        );
+
+      }
+
+      catch (
+        error
+      ) {
+
+        console.error(
+          'Logout failed:',
+          error
+        );
+
+      }
+
+
+      setCurrentUser(
+        null
+      );
+
+
+      setIsAuthenticated(
+        false
+      );
+
+
+      setViewMode(
+        'landing'
+      );
+
+
+      setActiveTab(
+        'overview'
+      );
+
+
+      addToast(
+        'Logged Out',
+        'You have been safely logged out of Veyra.'
+      );
+
+    };
+
+
+  // ============================================================
+  // STAFF
   // ============================================================
 
   const handleAddStaff = (
-    newStaff: Partial<StaffMember>
+    newStaff:
+      Partial<StaffMember>
   ) => {
 
-    const created: StaffMember = {
+    const created:
+      StaffMember = {
 
-      id: `staff-${Date.now()}`,
+      id:
+        `staff-${Date.now()}`,
 
       name:
         newStaff.name ||
@@ -222,7 +742,7 @@ export default function App() {
 
       discordAvatar:
         newStaff.discordAvatar ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+        '',
 
       robloxUsername:
         newStaff.robloxUsername ||
@@ -230,7 +750,7 @@ export default function App() {
 
       robloxAvatar:
         newStaff.robloxAvatar ||
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150',
+        '',
 
       robloxId:
         newStaff.robloxId ||
@@ -267,17 +787,23 @@ export default function App() {
         'Active',
 
       joinDate:
-        new Date().toISOString().split('T')[0],
+        new Date()
+          .toISOString()
+          .split('T')[0],
 
       lastActive:
         'Just now',
 
     };
 
-    setStaffList((prev) => [
-      created,
-      ...prev
-    ]);
+
+    setStaffList(
+      (prev) => [
+        created,
+        ...prev
+      ]
+    );
+
 
     addToast(
       'Staff Onboarded',
@@ -288,58 +814,76 @@ export default function App() {
 
 
   const handlePromoteStaff = (
-    staffId: string
+    staffId:
+      string
   ) => {
 
-    setStaffList((prev) =>
-      prev.map((s) =>
-        s.id === staffId
-          ? {
-              ...s,
-              rank: 'Senior Staff',
-              rankTier: s.rankTier + 1
-            }
-          : s
-      )
+    setStaffList(
+      (prev) =>
+        prev.map(
+          (staff) =>
+            staff.id === staffId
+              ? {
+                  ...staff,
+                  rank:
+                    'Senior Staff',
+                  rankTier:
+                    staff.rankTier + 1
+                }
+              : staff
+        )
     );
 
   };
 
 
   const handleDemoteStaff = (
-    staffId: string
+    staffId:
+      string
   ) => {
 
-    setStaffList((prev) =>
-      prev.map((s) =>
-        s.id === staffId
-          ? {
-              ...s,
-              rank: 'Junior Staff',
-              rankTier: Math.max(
-                1,
-                s.rankTier - 1
-              )
-            }
-          : s
-      )
+    setStaffList(
+      (prev) =>
+        prev.map(
+          (staff) =>
+            staff.id === staffId
+              ? {
+                  ...staff,
+                  rank:
+                    'Junior Staff',
+                  rankTier:
+                    Math.max(
+                      1,
+                      staff.rankTier - 1
+                    )
+                }
+              : staff
+        )
     );
 
   };
 
 
   const handleWarnStaff = (
-    staffId: string
+    staffId:
+      string
   ) => {
 
     const staff =
       staffList.find(
-        (s) => s.id === staffId
+        (item) =>
+          item.id === staffId
       );
 
-    if (!staff) return;
 
-    const newCase: ModerationCase = {
+    if (
+      !staff
+    )
+      return;
+
+
+    const newCase:
+      ModerationCase = {
 
       id:
         `CASE-${Math.floor(
@@ -360,7 +904,8 @@ export default function App() {
         'Warning',
 
       moderatorName:
-        'Matthew (General Manager)',
+        currentUser?.displayName ||
+        'Veyra Admin',
 
       reason:
         'Official warning logged for quota inactivity.',
@@ -368,31 +913,42 @@ export default function App() {
       date:
         new Date()
           .toISOString()
-          .replace('T', ' ')
-          .substring(0, 16),
+          .replace(
+            'T',
+            ' '
+          )
+          .substring(
+            0,
+            16
+          ),
 
       status:
         'Active',
 
     };
 
-    setCases((prev) => [
-      newCase,
-      ...prev
-    ]);
+
+    setCases(
+      (prev) => [
+        newCase,
+        ...prev
+      ]
+    );
 
   };
 
 
   // ============================================================
-  // SHIFT ACTIONS
+  // SHIFTS
   // ============================================================
 
   const handleCreateShift = (
-    newShift: Partial<Shift>
+    newShift:
+      Partial<Shift>
   ) => {
 
-    const created: Shift = {
+    const created:
+      Shift = {
 
       id:
         `shift-${Math.floor(
@@ -401,15 +957,16 @@ export default function App() {
         )}`,
 
       hostName:
-        newShift.hostName ||
-        'Matthew',
+        currentUser?.displayName ||
+        'Veyra User',
 
       hostAvatar:
-        newShift.hostAvatar ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+        currentUser?.avatar ||
+        '',
 
       robloxUsername:
         newShift.robloxUsername ||
+        currentUser?.username ||
         'MatthewRBX',
 
       startTime:
@@ -425,7 +982,8 @@ export default function App() {
       participants:
         [
           newShift.robloxUsername ||
-          'MatthewRBX'
+          currentUser?.username ||
+          'Veyra User'
         ],
 
       status:
@@ -441,10 +999,14 @@ export default function App() {
 
     };
 
-    setShifts((prev) => [
-      created,
-      ...prev
-    ]);
+
+    setShifts(
+      (prev) => [
+        created,
+        ...prev
+      ]
+    );
+
 
     addToast(
       'Shift Hosted',
@@ -455,149 +1017,176 @@ export default function App() {
 
 
   const handleEndShift = (
-    shiftId: string
+    shiftId:
+      string
   ) => {
 
-    setShifts((prev) =>
-      prev.map((s) =>
-        s.id === shiftId
-          ? {
-              ...s,
-              status: 'Completed' as const
-            }
-          : s
-      )
+    setShifts(
+      (prev) =>
+        prev.map(
+          (shift) =>
+            shift.id === shiftId
+              ? {
+                  ...shift,
+                  status:
+                    'Completed' as const
+                }
+              : shift
+        )
     );
 
   };
 
 
   // ============================================================
-  // APPLICATION ACTIONS
+  // APPLICATIONS
   // ============================================================
 
   const handleApproveApplication = (
-    id: string,
-    notes?: string
+    id:
+      string,
+    notes?:
+      string
   ) => {
 
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? {
-              ...a,
-              status:
-                'Approved' as const,
-              reviewer:
-                'Matthew (GM)',
-              reviewerNotes:
-                notes
-            }
-          : a
-      )
+    setApplications(
+      (prev) =>
+        prev.map(
+          (application) =>
+            application.id === id
+              ? {
+                  ...application,
+                  status:
+                    'Approved' as const,
+                  reviewer:
+                    currentUser?.displayName ||
+                    'Veyra Admin',
+                  reviewerNotes:
+                    notes
+                }
+              : application
+        )
     );
 
   };
 
 
   const handleDenyApplication = (
-    id: string,
-    notes?: string
+    id:
+      string,
+    notes?:
+      string
   ) => {
 
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? {
-              ...a,
-              status:
-                'Denied' as const,
-              reviewer:
-                'Matthew (GM)',
-              reviewerNotes:
-                notes
-            }
-          : a
-      )
+    setApplications(
+      (prev) =>
+        prev.map(
+          (application) =>
+            application.id === id
+              ? {
+                  ...application,
+                  status:
+                    'Denied' as const,
+                  reviewer:
+                    currentUser?.displayName ||
+                    'Veyra Admin',
+                  reviewerNotes:
+                    notes
+                }
+              : application
+        )
     );
 
   };
 
 
   const handleRequestInterview = (
-    id: string
+    id:
+      string
   ) => {
 
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? {
-              ...a,
-              status:
-                'Interview Requested' as const,
-              reviewer:
-                'Matthew (GM)'
-            }
-          : a
-      )
+    setApplications(
+      (prev) =>
+        prev.map(
+          (application) =>
+            application.id === id
+              ? {
+                  ...application,
+                  status:
+                    'Interview Requested' as const,
+                  reviewer:
+                    currentUser?.displayName ||
+                    'Veyra Admin'
+                }
+              : application
+        )
     );
 
   };
 
 
   // ============================================================
-  // LOA ACTIONS
+  // LOA
   // ============================================================
 
   const handleApproveLOA = (
-    id: string
+    id:
+      string
   ) => {
 
-    setLoas((prev) =>
-      prev.map((l) =>
-        l.id === id
-          ? {
-              ...l,
-              status:
-                'Approved' as const,
-              approvedBy:
-                'Matthew (GM)'
-            }
-          : l
-      )
+    setLoas(
+      (prev) =>
+        prev.map(
+          (loa) =>
+            loa.id === id
+              ? {
+                  ...loa,
+                  status:
+                    'Approved' as const,
+                  approvedBy:
+                    currentUser?.displayName ||
+                    'Veyra Admin'
+                }
+              : loa
+        )
     );
 
   };
 
 
   const handleDenyLOA = (
-    id: string
+    id:
+      string
   ) => {
 
-    setLoas((prev) =>
-      prev.map((l) =>
-        l.id === id
-          ? {
-              ...l,
-              status:
-                'Denied' as const
-            }
-          : l
-      )
+    setLoas(
+      (prev) =>
+        prev.map(
+          (loa) =>
+            loa.id === id
+              ? {
+                  ...loa,
+                  status:
+                    'Denied' as const
+                }
+              : loa
+        )
     );
 
   };
 
 
   // ============================================================
-  // CASE ACTIONS
+  // MODERATION
   // ============================================================
 
   const handleCreateCase = (
-    newCase: Partial<ModerationCase>
+    newCase:
+      Partial<ModerationCase>
   ) => {
 
-    const created: ModerationCase = {
+    const created:
+      ModerationCase = {
 
       id:
         `CASE-${Math.floor(
@@ -622,7 +1211,8 @@ export default function App() {
 
       moderatorName:
         newCase.moderatorName ||
-        'Matthew (GM)',
+        currentUser?.displayName ||
+        'Veyra Admin',
 
       reason:
         newCase.reason ||
@@ -631,18 +1221,28 @@ export default function App() {
       date:
         new Date()
           .toISOString()
-          .replace('T', ' ')
-          .substring(0, 16),
+          .replace(
+            'T',
+            ' '
+          )
+          .substring(
+            0,
+            16
+          ),
 
       status:
         'Active',
 
     };
 
-    setCases((prev) => [
-      created,
-      ...prev
-    ]);
+
+    setCases(
+      (prev) => [
+        created,
+        ...prev
+      ]
+    );
+
 
     addToast(
       'Case Logged',
@@ -652,21 +1252,29 @@ export default function App() {
   };
 
 
+  // ============================================================
+  // RANK SYNC
+  // ============================================================
+
   const handleToggleAutoSync = (
-    id: string
+    id:
+      string
   ) => {
 
-    setRankSyncRules((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              autoSync:
-                !r.autoSync
-            }
-          : r
-      )
+    setRankSyncRules(
+      (prev) =>
+        prev.map(
+          (rule) =>
+            rule.id === id
+              ? {
+                  ...rule,
+                  autoSync:
+                    !rule.autoSync
+                }
+              : rule
+        )
     );
+
 
     addToast(
       'Rank Sync Toggled',
@@ -677,6 +1285,37 @@ export default function App() {
 
 
   // ============================================================
+  // AUTH LOADING
+  // ============================================================
+
+  if (
+    checkingAuth
+  ) {
+
+    return (
+
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+
+        <div className="text-center">
+
+          <div className="w-10 h-10 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
+
+          <p className="text-sm text-slate-400">
+
+            Checking your Veyra session...
+
+          </p>
+
+        </div>
+
+      </div>
+
+    );
+
+  }
+
+
+  // ============================================================
   // RENDER
   // ============================================================
 
@@ -684,8 +1323,9 @@ export default function App() {
 
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
 
+
       {/* ======================================================
-          1. PUBLIC MARKETING WEBSITE
+          LANDING
       ====================================================== */}
 
       {viewMode === 'landing' && (
@@ -693,29 +1333,44 @@ export default function App() {
         <LandingPage
 
           onNavigateLogin={() =>
-            setViewMode('login')
+            setViewMode(
+              'login'
+            )
           }
+
 
           onNavigateDashboard={() => {
 
-            if (isAuthenticated) {
+            if (
+              isAuthenticated
+            ) {
 
-              setViewMode('dashboard');
+              setViewMode(
+                'dashboard'
+              );
+
 
               addToast(
                 'Welcome to Veyra',
                 `Connected to ${activeCommunity.name} dashboard.`
               );
 
-            } else {
+            }
 
-              setViewMode('login');
+            else {
+
+              setViewMode(
+                'login'
+              );
 
             }
 
           }}
 
-          onToast={addToast}
+
+          onToast={
+            addToast
+          }
 
         />
 
@@ -723,7 +1378,7 @@ export default function App() {
 
 
       {/* ======================================================
-          2. LOGIN PAGE
+          LOGIN
       ====================================================== */}
 
       {viewMode === 'login' && (
@@ -731,8 +1386,11 @@ export default function App() {
         <LoginPage
 
           onNavigateHome={() =>
-            setViewMode('landing')
+            setViewMode(
+              'landing'
+            )
           }
+
 
           onLoginSuccess={
             handleLoginSuccess
@@ -744,66 +1402,95 @@ export default function App() {
 
 
       {/* ======================================================
-          3. AUTHENTICATED DASHBOARD
+          DASHBOARD
       ====================================================== */}
 
-      {viewMode === 'dashboard' && isAuthenticated && (
+      {viewMode === 'dashboard' &&
+        isAuthenticated && (
 
         <div className="flex h-screen overflow-hidden bg-slate-950">
+
 
           {/* SIDEBAR */}
 
           <Sidebar
 
-            activeTab={activeTab}
-
-            onTabChange={(tab) =>
-              setActiveTab(tab)
+            activeTab={
+              activeTab
             }
 
-            communities={communities}
+
+            onTabChange={
+              (tab) =>
+                setActiveTab(
+                  tab
+                )
+            }
+
+
+            communities={
+              communities
+            }
+
 
             activeCommunity={
               activeCommunity
             }
 
-            onSelectCommunity={(comm) => {
 
-              setActiveCommunity(comm);
+            onSelectCommunity={
+              (community) => {
 
-              addToast(
-                'Switched Community',
-                `Now managing ${comm.name}`
-              );
+                setActiveCommunity(
+                  community
+                );
 
-            }}
 
-            onNavigateHome={() => {
+                addToast(
+                  'Switched Community',
+                  `Now managing ${community.name}`
+                );
 
-              setViewMode('landing');
+              }
+            }
 
-            }}
+
+            onNavigateHome={() =>
+              setViewMode(
+                'landing'
+              )
+            }
+
 
             onOpenSupport={() =>
-              setSupportModalOpen(true)
+              setSupportModalOpen(
+                true
+              )
             }
 
           />
 
 
-          {/* MAIN CONTENT */}
+          {/* MAIN */}
 
           <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
 
+
             <Header
 
-              activeTab={activeTab}
+              activeTab={
+                activeTab
+              }
+
 
               activeCommunity={
                 activeCommunity
               }
 
-              onToast={addToast}
+
+              onToast={
+                addToast
+              }
 
             />
 
@@ -829,12 +1516,17 @@ export default function App() {
                     activityLogs
                   }
 
-                  onNavigateTab={(tab) =>
-                    setActiveTab(tab)
+                  onNavigateTab={
+                    (tab) =>
+                      setActiveTab(
+                        tab
+                      )
                   }
 
                   onOpenCreateShift={() =>
-                    setActiveTab('shifts')
+                    setActiveTab(
+                      'shifts'
+                    )
                   }
 
                 />
@@ -882,9 +1574,11 @@ export default function App() {
               {activeTab === 'activity' && (
 
                 <ActivityView
+
                   staffList={
                     staffList
                   }
+
                 />
 
               )}
@@ -931,8 +1625,11 @@ export default function App() {
                     staffList
                   }
 
-                  onUpdateQuotas={(updated) =>
-                    setQuotaConfigs(updated)
+                  onUpdateQuotas={
+                    (updated) =>
+                      setQuotaConfigs(
+                        updated
+                      )
                   }
 
                   onToast={
@@ -1061,9 +1758,11 @@ export default function App() {
               {activeTab === 'analytics' && (
 
                 <AnalyticsView
+
                   analyticsData={
                     MOCK_ANALYTICS
                   }
+
                 />
 
               )}
@@ -1097,7 +1796,7 @@ export default function App() {
 
 
       {/* ======================================================
-          GLOBAL SUPPORT MODAL
+          SUPPORT MODAL
       ====================================================== */}
 
       <SupportModal
@@ -1107,7 +1806,9 @@ export default function App() {
         }
 
         onClose={() =>
-          setSupportModalOpen(false)
+          setSupportModalOpen(
+            false
+          )
         }
 
         onToast={
@@ -1118,7 +1819,7 @@ export default function App() {
 
 
       {/* ======================================================
-          GLOBAL TOASTS
+          TOASTS
       ====================================================== */}
 
       <ToastContainer

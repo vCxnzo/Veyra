@@ -1,0 +1,404 @@
+import React, { FormEvent, useState } from 'react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Link2,
+  Loader2,
+  LogOut,
+  ShieldCheck,
+  UserRound,
+  Users
+} from 'lucide-react';
+
+const API_URL =
+    'https://api.veyra.one';
+
+
+interface ConnectedCommunity {
+  id: string;
+  groupId: string;
+  groupName: string;
+  groupDescription: string;
+  memberCount: number;
+  ownerName: string | null;
+  ownerId: string | null;
+  iconUrl: string | null;
+  createdAt: string;
+}
+
+interface AddCommunityResponse {
+  success: boolean;
+  message: string;
+  community?: ConnectedCommunity;
+}
+
+interface AddGroupPageProps {
+  userName: string;
+  onGroupConnected: () => void | Promise<void>;
+  onLogout: () => void | Promise<void>;
+}
+
+export default function AddGroupPage({
+  userName,
+  onGroupConnected,
+  onLogout
+}: AddGroupPageProps) {
+  const [
+    groupId,
+    setGroupId
+  ] =
+    useState('');
+
+  const [
+    connecting,
+    setConnecting
+  ] =
+    useState(false);
+
+  const [
+    continuing,
+    setContinuing
+  ] =
+    useState(false);
+
+  const [
+    error,
+    setError
+  ] =
+    useState('');
+
+  const [
+    connectedCommunity,
+    setConnectedCommunity
+  ] =
+    useState<ConnectedCommunity | null>(
+      null
+    );
+
+  const handleSubmit =
+    async (
+      event: FormEvent<HTMLFormElement>
+    ) => {
+      event.preventDefault();
+
+      const cleanedGroupId =
+        groupId.trim();
+
+      if (!cleanedGroupId) {
+        setError(
+          'Enter your Roblox Group ID.'
+        );
+
+        return;
+      }
+
+      if (!/^\d+$/.test(cleanedGroupId)) {
+        setError(
+          'Your Roblox Group ID should only contain numbers.'
+        );
+
+        return;
+      }
+
+      setConnecting(true);
+      setError('');
+
+      try {
+        const response =
+          await fetch(
+            `${API_URL}/api/communities`,
+            {
+              method:
+                'POST',
+
+              credentials:
+                'include',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+
+                'Accept':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify({
+                  groupId:
+                    cleanedGroupId
+                })
+            }
+          );
+
+        const data:
+          AddCommunityResponse =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !data.success ||
+          !data.community
+        ) {
+          throw new Error(
+            data.message ||
+            'Veyra could not connect that group.'
+          );
+        }
+
+        setConnectedCommunity(
+          data.community
+        );
+      } catch (requestError) {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'Veyra could not connect that group.'
+        );
+      } finally {
+        setConnecting(false);
+      }
+    };
+
+  const handleContinue =
+    async () => {
+      setContinuing(true);
+
+      try {
+        await onGroupConnected();
+      } finally {
+        setContinuing(false);
+      }
+    };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      <header className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
+              <ShieldCheck size={22} />
+            </div>
+
+            <div>
+              <p className="font-semibold tracking-tight">
+                Veyra
+              </p>
+
+              <p className="text-xs text-slate-500">
+                Community Management
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
+          >
+            <LogOut size={16} />
+            Log out
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto flex max-w-6xl items-center justify-center px-6 py-16">
+        <div className="w-full max-w-xl">
+          {!connectedCommunity ? (
+            <>
+              <div className="mb-8 text-center">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
+                  <Link2 size={28} />
+                </div>
+
+                <p className="mb-2 text-sm font-medium text-indigo-300">
+                  Welcome, {userName}
+                </p>
+
+                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  Add your first group
+                </h1>
+
+                <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-slate-400">
+                  Connect a Roblox group to create its Veyra dashboard and begin managing your community.
+                </p>
+              </div>
+
+              <form
+                onSubmit={handleSubmit}
+                className="rounded-2xl border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-black/20"
+              >
+                <label
+                  htmlFor="groupId"
+                  className="mb-2 block text-sm font-medium text-slate-200"
+                >
+                  Roblox Group ID
+                </label>
+
+                <input
+                  id="groupId"
+                  name="groupId"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="Example: 2618056"
+                  value={groupId}
+                  onChange={(event) => {
+                    setGroupId(
+                      event.target.value
+                    );
+
+                    if (error) {
+                      setError('');
+                    }
+                  }}
+                  disabled={connecting}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  The Group ID is the number inside your Roblox community URL.
+                </p>
+
+                {error && (
+                  <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={
+                    connecting ||
+                    !groupId.trim()
+                  }
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {connecting ? (
+                    <>
+                      <Loader2
+                        size={18}
+                        className="animate-spin"
+                      />
+                      Checking group...
+                    </>
+                  ) : (
+                    <>
+                      Connect group
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-emerald-500/20 bg-slate-900/70 p-6 shadow-2xl shadow-black/20">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300">
+                  <CheckCircle2 size={26} />
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-emerald-300">
+                    Group connected
+                  </p>
+
+                  <h1 className="text-2xl font-bold">
+                    Your dashboard is ready
+                  </h1>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
+                <div className="flex items-center gap-4">
+                  {connectedCommunity.iconUrl ? (
+                    <img
+                      src={
+                        connectedCommunity.iconUrl
+                      }
+                      alt=""
+                      className="h-16 w-16 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
+                      <Users size={28} />
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <h2 className="truncate text-xl font-semibold">
+                      {
+                        connectedCommunity.groupName
+                      }
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Group ID:{' '}
+                      {
+                        connectedCommunity.groupId
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                    <div className="mb-1 flex items-center gap-2 text-slate-500">
+                      <Users size={15} />
+                      <span className="text-xs">
+                        Members
+                      </span>
+                    </div>
+
+                    <p className="font-semibold">
+                      {
+                        connectedCommunity.memberCount.toLocaleString()
+                      }
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                    <div className="mb-1 flex items-center gap-2 text-slate-500">
+                      <UserRound size={15} />
+                      <span className="text-xs">
+                        Owner
+                      </span>
+                    </div>
+
+                    <p className="truncate font-semibold">
+                      {
+                        connectedCommunity.ownerName ||
+                        'Unknown'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleContinue}
+                disabled={continuing}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {continuing ? (
+                  <>
+                    <Loader2
+                      size={18}
+                      className="animate-spin"
+                    />
+                    Opening dashboard...
+                  </>
+                ) : (
+                  <>
+                    Continue to dashboard
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
